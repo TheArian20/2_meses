@@ -39,3 +39,10 @@ next-env.d.ts
 
 /site-build.tar.gz
 *.tsbuildinfo
+
+/.qa/
+/add-song.mjs
+/enhance-gift.mjs
+/enhancement.css
+/font-source.css
+/download-fonts.mjs
