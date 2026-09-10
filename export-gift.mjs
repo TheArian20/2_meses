@@ -1,0 +1,13 @@
+﻿import fs from 'node:fs';
+import vm from 'node:vm';
+const source=fs.readFileSync('app/page.tsx','utf8');
+let html=await (await fetch('http://localhost:3000/')).text();
+const notes=vm.runInNewContext(source.match(/const notes=(\[.*?\]);/s)[1]);
+const letter=source.match(/<div className="letter-content">(.*?)<\/div>\}/s)[1].replaceAll('className=','class=').replace(/<Heart size=\{19\}\/>/g,'♡');
+const css=fs.readFileSync('app/globals.css','utf8').replaceAll('\uFEFF','').replace(/@import[^;]*;/g,'').replace('background:var(--background);color:var(--foreground);','background:#121820;color:#f8f3ec;');
+html=html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<link\b[^>]*>/gi,'').replace('</head>',`<style>${css}</style></head>`);
+const script=`const notes=${JSON.stringify(notes)};const letter=${JSON.stringify(letter)};const seen=new Set();let active=-1;function openLetter(){document.querySelector('.letter').innerHTML='<div class="letter-content">'+letter+'</div>';}document.querySelector('.hero .pill').addEventListener('click',openLetter);document.querySelector('.open-letter')?.addEventListener('click',openLetter);document.querySelectorAll('.note').forEach((el,i)=>{el.addEventListener('click',()=>{active=active===i?-1:i;seen.add(i);document.querySelectorAll('.note').forEach((n,j)=>{n.classList.toggle('active',active===j);n.setAttribute('aria-expanded',String(active===j));n.querySelector('p')?.remove();n.querySelector('.note-hint')?.remove();const text=document.createElement(active===j?'p':'span');text.className=active===j?'':'note-hint';text.textContent=active===j?notes[j][1]:(seen.has(j)?'Volver a leer':'Un mensaje para ti');n.appendChild(text);});document.querySelector('.count').textContent=seen.size+' de 6 pequeños abrazos descubiertos';});});document.querySelector('.finale .pill').addEventListener('click',function(){const existing=document.querySelector('.last-message');if(existing){existing.remove();this.setAttribute('aria-expanded','false');this.innerHTML='Un último abrazo ♡';return;}this.setAttribute('aria-expanded','true');this.innerHTML='Guardar este abrazo ♡';const box=document.createElement('div');box.className='last-message';box.setAttribute('role','status');box.innerHTML='<span>Te quiero, Michelle.</span><p>Si estuviera contigo ahora, esta parte sería un abrazo largo.<br>Mientras tanto, te dejo estas palabras y todo mi cariño.</p><strong>Felices dos meses, mi amor. ♡</strong>';this.after(box);});`;
+new vm.Script(script);
+html=html.replace('</body>',`<script>${script}</script></body>`);
+fs.writeFileSync('Para Michelle.html',html);
+console.log('Archivo independiente creado. '+html.length+' caracteres.');
